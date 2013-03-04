@@ -1,0 +1,35 @@
+Moggle currently is split up in three parts:
+
+1. Moggle Math [Header only]
+   Provides matrix and vector types, and everything that's related.
+   Does not depend on OpenGL or on another part of Moggle, so can be used separately.
+
+2. Moggle Core [Header only]
+   A very thin wrapper around OpenGL. Provides classes such as 'vbo', 'vao' and 'shader'.
+
+3. Moggle XXX
+   A very sexy and easy way to use OpenGL.
+   It has advanced features such as shader pipelines and more.
+
+
+Moggle is made by Mara Bos <m-ou.se@m-ou.se>.
+
+
+== License ==
+
+Moggle is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+Moggle is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Moggle.  If not, see <http://www.gnu.org/licenses/>.
+
+
+See COPYING for details.
+
