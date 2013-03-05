@@ -72,6 +72,15 @@ public:
 				nullptr
 			);
 		}
+		std::shared_ptr<class generic_buffer> generic_buffer() {
+			if (!exists()) throw attribute_error("No such attribute.");
+			return a->buffer;
+		}
+		template<typename T>
+		std::shared_ptr<moggle::buffer<T>> buffer() {
+			if (!exists()) throw attribute_error("No such attribute.");
+			return std::dynamic_pointer_cast<moggle::buffer<T>>(a->buffer);
+		}
 	};
 
 	friend class attribute_ref;
@@ -97,6 +106,8 @@ public:
 	void attribute(std::string const & name, buffer<T> && buf) {
 		attribute(name, buf.make_shared());
 	}
+
+	// TODO: const_attribute_ref
 
 	attribute_ref attribute(std::string const & name) {
 		return attribute(attributes_.find(name));
