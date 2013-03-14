@@ -50,7 +50,7 @@ public:
 	explicit operator bool() const { return created(); }
 
 	void create() const { if (!id) gl::generate_vertex_arrays(1, &id); }
-	void destroy() { gl::delete_vertex_arrays(1, &id); }
+	void destroy() { gl::delete_vertex_arrays(1, &id); id = 0; }
 
 	void bind() const {
 		create();
