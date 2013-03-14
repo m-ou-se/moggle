@@ -111,7 +111,7 @@ private:
 			glGetShaderiv(id, GL_INFO_LOG_LENGTH, &log_size);
 			if (log_size) {
 				std::vector<char> log(log_size);
-				glGetShaderInfoLog(id, log_size, 0, log.data());
+				glGetShaderInfoLog(id, log_size, nullptr, log.data());
 				error.back() = ':';
 				error += '\n';
 				error += log.data();
@@ -173,7 +173,7 @@ public:
 			glGetProgramiv(id, GL_INFO_LOG_LENGTH, &log_size);
 			if (log_size) {
 				std::vector<char> log(log_size);
-				glGetProgramInfoLog(id, log_size, 0, log.data());
+				glGetProgramInfoLog(id, log_size, nullptr, log.data());
 				error.back() = ':';
 				error += '\n';
 				error += log.data();
