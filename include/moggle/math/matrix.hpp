@@ -50,12 +50,10 @@ public:
 	static matrix from_columns(matrix<T2, N2, 1>... columns) {
 		static_assert(sizeof...(columns) <= M, "Too many columns.");
 		matrix result;
-		size_t i = 0;
-		for (auto const & m : { columns... }) {
-			for (size_t j = 0; j < m.height() && j < N; ++j) {
-				result(j, i) = m(j);
-			}
-			++i;
+		matrix<T, N, 1> c[M] = { columns... };
+		for (size_t i = 0; i < M; ++i)
+		for (size_t j = 0; j < N; ++j) {
+			result(j, i) = c[i][j];
 		}
 		return result;
 	}
@@ -66,12 +64,10 @@ public:
 	static matrix from_rows(matrix<T2, 1, M2>... rows) {
 		static_assert(sizeof...(rows) <= N, "Too many rows.");
 		matrix result;
-		size_t i = 0;
-		for (auto const & m : { rows... }) {
-			for (size_t j = 0; j < m.width() && j < M; ++j) {
-				result(i, j) = m(j);
-			}
-			++i;
+		matrix<T, 1, M> r[N] = { rows... };
+		for (size_t i = 0; i < N; ++i)
+		for (size_t j = 0; j < M; ++j) {
+			result(i, j) = r[i][j];
 		}
 		return result;
 	}
