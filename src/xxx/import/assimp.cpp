@@ -26,7 +26,6 @@
 
 #include <moggle/core/gl.hpp>
 #include <moggle/math/matrix.hpp>
-#include <moggle/math/normalized.hpp>
 #include <moggle/xxx/buffer.hpp>
 #include <moggle/xxx/vertices.hpp>
 #include <moggle/xxx/mesh.hpp>
@@ -62,14 +61,10 @@ mesh import_mesh(char const * file_name) {
 	}
 
 	for (size_t n = 0; n < am.GetNumColorChannels(); ++n) {
-		buffer<hvector4<normalized_uint8_t>> colors(am.mNumVertices);
+		buffer<hvector4<float>> colors(am.mNumVertices);
 		for(unsigned int i = 0; i < am.mNumVertices; ++i) {
-			colors[i] = {
-				normalized_uint8_t::raw(am.mColors[n][i].r),
-				normalized_uint8_t::raw(am.mColors[n][i].g),
-				normalized_uint8_t::raw(am.mColors[n][i].b),
-				normalized_uint8_t::raw(am.mColors[n][i].a)
-			};
+			auto const & c = am.mColors[n][i];
+			colors[i] = {c.r, c.g, c.b, c.a};
 		}
 		std::ostringstream name("color", std::ios_base::ate);
 		if (n) name << (n + 1);
