@@ -51,8 +51,8 @@ void context::add_code(std::istream & in, std::string const & name) {
 
 	token_iterator i{in};
 
-	if (name.empty()) this->code_ += "// ---";
-	else              this->code_ += "// " + name;
+	this->code_ += "// --------------------";
+	if (!name.empty()) this->code_ += "// " + name;
 	this->code_ +="\n\n";
 
 	while (i) {
@@ -132,7 +132,6 @@ void context::add_code(std::istream & in, std::string const & name) {
 	}
 
 	this->code_ += "\n";
-	this->code_ += "// End of " + name + "\n";
 
 }
 
@@ -156,8 +155,8 @@ void pipeline::compile_source() {
 	stream_splitter both_shaders { vertex_shader, fragment_shader };
 
 	both_shaders << context << '\n';
-	both_shaders << "// ---" << '\n';
-	both_shaders << "// Automatically generated shader" << '\n';
+	both_shaders << "// --------------------" << '\n';
+	both_shaders << "// generated shader" << '\n' << '\n';
 
 	for (auto const & v : uniform_variables) {
 		both_shaders << "uniform " << v << ";" << '\n';
@@ -165,6 +164,7 @@ void pipeline::compile_source() {
 
 	std::set<variable> required_variables;
 	std::set<variable> local_variables;
+	std::set<variable> varying_variables;
 
 	for (auto const & v : fragment_outputs) {
 		required_variables.insert(v);
@@ -173,51 +173,80 @@ void pipeline::compile_source() {
 		if (v.second.empty()) continue;
 		required_variables.insert(variable(v.first.type, v.second));
 	}
-	local_variables = required_variables;
 
-	auto process_operations = [&](std::list<operation> const & operations) -> std::deque<std::string> {
-		std::deque<std::string> statements;
+	auto process_operations = [&](std::list<operation> const & operations) {
 		for (auto i = operations.rbegin(); i != operations.rend(); ++i) {
-			std::ostringstream statement;
 			if (i->name == "=") {
 				for (auto const & p : i->parameters) {
 					auto v = required_variables.find(p.first);
-					if (v != required_variables.end()) {
-						required_variables.erase(v);
-						statement << "_l_" << p.first << " = ";
-						if (p.second.type() == operation_parameter::variable) {
-							statement << "_l_" << p.second.code();
-							local_variables.insert(variable{v->type, p.second.code()});
-							required_variables.insert(variable{v->type, p.second.code()});
-						} else {
-							statement << p.second.code();
-						}
-						statement << ';';
+					if (v == required_variables.end()) throw compile_error{"Unused variable '" + p.first + "'."};
+					local_variables.insert(*v);
+					std::string type = v->type;
+					required_variables.erase(v);
+					if (p.second.type() == operation_parameter::variable) {
+						required_variables.insert(variable{type, p.second.code()});
 					}
 				}
 			} else {
 				auto op = context.operations().find(i->name);
 				if (op == context.operations().end()) throw compile_error{"Undefined reference to 'operation " + i->name + "'."};
-				statement << i->name;
-				bool first = true;
 				for (auto p : op->second.parameters) {
-					if (first) statement << '(';
-					else       statement << ',';
-					first = false;
 					auto s = i->parameters.find(p.name);
 					if (s != i->parameters.end()) {
 						if (s->second.type() == operation_parameter::variable) {
 							p.name = s->second.code();
 						} else {
 							if (p.out) throw compile_error{"Can't use a constant (" + s->second.code() + ") for 'out " + p.type + " " + p.name + "'."};
+							continue;
+						}
+					}
+					if (p.out) {
+						local_variables.insert(p);
+						required_variables.erase(p);
+					}
+					if (p.in) required_variables.insert(p);
+				}
+			}
+		}
+	};
+
+	auto var_name = [&](std::string const & v) -> std::string {
+		if (local_variables.count(v)) return "_l_" + v;
+		if (varying_variables.count(v)) return "_v_" + v;
+		return v;
+	};
+
+	auto generate_statements = [&](std::list<operation> const & operations) -> std::deque<std::string> {
+		std::deque<std::string> statements;
+		for (auto i = operations.rbegin(); i != operations.rend(); ++i) {
+			std::ostringstream statement;
+			if (i->name == "=") {
+				for (auto const & p : i->parameters) {
+					statement << "_l_" << p.first << " = ";
+					if (p.second.type() == operation_parameter::variable) {
+						statement << var_name(p.second.code());
+					} else {
+						statement << p.second.code();
+					}
+					statement << ';';
+				}
+			} else {
+				auto op = context.operations().find(i->name);
+				statement << i->name;
+				bool first = true;
+				for (auto p : op->second.parameters) {
+					statement << (first ? "(" : ", ");
+					first = false;
+					auto s = i->parameters.find(p.name);
+					if (s != i->parameters.end()) {
+						if (s->second.type() == operation_parameter::variable) {
+							p.name = s->second.code();
+						} else {
 							statement << s->second.code();
 							continue;
 						}
 					}
-					statement << "_l_" << p.name;
-					local_variables.insert(p);
-					if (p.out) required_variables.erase (p);
-					if (p.in ) required_variables.insert(p);
+					statement << var_name(p.name);
 				}
 				statement << ");";
 			}
@@ -226,13 +255,15 @@ void pipeline::compile_source() {
 		return statements;
 	};
 
-	auto fragment_operations_statements = process_operations(fragment_operations);
+	process_operations(fragment_operations);
 
-	std::set<variable> varying_variables = required_variables;
+	varying_variables = required_variables;
 
 	for (auto const & v : uniform_variables) {
 		varying_variables.erase(v);
 	}
+
+	auto fragment_operations_statements = generate_statements(fragment_operations);
 
 	for (auto const & v : varying_variables) {
 		both_shaders << "varying " << v.type << " _v_" << v.name << ";" << '\n';
@@ -255,23 +286,27 @@ void pipeline::compile_source() {
 		fragment_shader << '\t' << s << '\n';
 	}
 	for (auto const & v : fragment_outputs) {
-		fragment_shader << '\t' << v.name << " = _l_" << v.name << ";" << '\n';
+		fragment_shader << '\t' << v.name << " = " << var_name(v.name) << ";" << '\n';
 	}
 	for (auto const & v : special_fragment_outputs) {
 		if (v.second.empty()) continue;
-		fragment_shader << '\t' << v.first.name << " = _l_" << v.second << ";" << '\n';
+		fragment_shader << '\t' << v.first.name << " = " << var_name(v.second) << ";" << '\n';
 	}
 
 	fragment_shader << '}' << '\n';
+
+	auto varying_outputs = std::move(varying_variables);
+	varying_variables.clear();
 
 	for (auto const & v : special_vertex_outputs) {
 		if (v.second.empty()) continue;
 		required_variables.insert(variable(v.first.type, v.second));
 	}
 
-	local_variables = required_variables;
+	local_variables.clear();
 
-	auto vertex_operations_statements = process_operations(vertex_operations);
+	process_operations(vertex_operations);
+	auto vertex_operations_statements = generate_statements(vertex_operations);
 
 	vertex_attributes_.clear();
 	for (auto const & v : required_variables) {
@@ -294,10 +329,10 @@ void pipeline::compile_source() {
 	}
 	for (auto const & v : special_vertex_outputs) {
 		if (v.second.empty()) continue;
-		vertex_shader << '\t' << v.first.name << " = _l_" << v.second << ";" << '\n';
+		vertex_shader << '\t' << v.first.name << " = " << var_name(v.second) << ";" << '\n';
 	}
-	for (auto const & v : varying_variables) {
-		vertex_shader << '\t' << "_v_" << v.name << " = _l_" << v.name << ";" << '\n';
+	for (auto const & v : varying_outputs) {
+		vertex_shader << '\t' << "_v_" << v.name << " = " << var_name(v.name) << ";" << '\n';
 	}
 
 	vertex_shader << "}" << '\n';
