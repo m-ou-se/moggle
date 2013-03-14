@@ -64,7 +64,7 @@ public:
 		GLenum type,
 		bool normalize_integers,
 		size_t stride,
-		void * offset
+		void const * offset
 	) {
 		bind();
 		vbo.bind(GL_ARRAY_BUFFER);
