@@ -60,9 +60,9 @@ public:
 		if (indices_) {
 			indices_->sync();
 			indices_->bind(GL_ELEMENT_ARRAY_BUFFER);
-			glDrawElements(GL_TRIANGLES, indices_->size(), GL_UNSIGNED_SHORT, nullptr);
+			gl::draw_elements(GL_TRIANGLES, indices_->size(), GL_UNSIGNED_SHORT, nullptr);
 		} else {
-			// TODO: glDrawArrays(GL_TRIANGLES, 0, vertices_->size());
+			// TODO: gl::draw_arrays(GL_TRIANGLES, 0, vertices_->size());
 			// There is no vertices::size().
 		}
 	}

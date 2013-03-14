@@ -43,13 +43,13 @@ private:
 
 	shader() : id(0), type(shader_type::uninitialized) {}
 
-	explicit shader(shader_type type) : id(glCreateShader(GLenum(type))), type(type) {
+	explicit shader(shader_type type) : id(gl::create_shader(GLenum(type))), type(type) {
 		if (!id) throw std::runtime_error("Unable to create shader.");
 	}
 
 public:
 	~shader() {
-		glDeleteShader(id);
+		gl::delete_shader(id);
 	}
 
 	shader(shader && s) : shader() {
@@ -98,20 +98,20 @@ private:
 	}
 
 	void load(char const * source) {
-		glShaderSource(id, 1, &source, nullptr);
+		gl::shader_source(id, 1, &source, nullptr);
 	}
 
 	void compile() {
-		glCompileShader(id);
+		gl::compile_shader(id);
 		GLint status;
-		glGetShaderiv(id, GL_COMPILE_STATUS, &status);
+		gl::get_shader_iv(id, GL_COMPILE_STATUS, &status);
 		if (status == GL_FALSE) {
 			std::string error = "Unable to compile shader.";
 			GLint log_size;
-			glGetShaderiv(id, GL_INFO_LOG_LENGTH, &log_size);
+			gl::get_shader_iv(id, GL_INFO_LOG_LENGTH, &log_size);
 			if (log_size) {
 				std::vector<char> log(log_size);
-				glGetShaderInfoLog(id, log_size, nullptr, log.data());
+				gl::get_shader_info_log(id, log_size, nullptr, log.data());
 				error.back() = ':';
 				error += '\n';
 				error += log.data();
@@ -130,7 +130,7 @@ private:
 	GLuint id;
 
 	static GLuint create() {
-		GLuint id = glCreateProgram();
+		GLuint id = gl::create_program();
 		if (!id) throw std::runtime_error("Unable to create shader program.");
 		return id;
 	}
@@ -139,7 +139,7 @@ public:
 	shader_program() : id(create()) {}
 
 	~shader_program() {
-		glDeleteProgram(id);
+		gl::delete_program(id);
 	}
 
 	shader_program(shader_program && s) : shader_program() {
@@ -155,25 +155,25 @@ public:
 	shader_program & operator = (shader_program const &) = delete;
 
 	void clear() {
-		glDeleteProgram(id);
+		gl::delete_program(id);
 		id = create();
 	}
 
 	void attach(shader const & shader) {
-		glAttachShader(id, shader.id);
+		gl::attach_shader(id, shader.id);
 	}
 
 	void link() {
-		glLinkProgram(id);
+		gl::link_program(id);
 		GLint status;
-		glGetProgramiv(id, GL_LINK_STATUS, &status);
+		gl::get_program_iv(id, GL_LINK_STATUS, &status);
 		if (status == GL_FALSE) {
 			std::string error = "Unable to link shader program.";
 			GLint log_size;
-			glGetProgramiv(id, GL_INFO_LOG_LENGTH, &log_size);
+			gl::get_program_iv(id, GL_INFO_LOG_LENGTH, &log_size);
 			if (log_size) {
 				std::vector<char> log(log_size);
-				glGetProgramInfoLog(id, log_size, nullptr, log.data());
+				gl::get_program_info_log(id, log_size, nullptr, log.data());
 				error.back() = ':';
 				error += '\n';
 				error += log.data();
@@ -183,7 +183,7 @@ public:
 	}
 
 	void bind_attribute(GLuint attribute, char const * name) {
-		glBindAttribLocation(id, GLuint(attribute), name);
+		gl::bind_attribute_location(id, GLuint(attribute), name);
 	}
 
 	void bind_attribute(GLuint attribute, std::string const & name) {
@@ -191,12 +191,12 @@ public:
 	}
 
 	void use() const {
-		glUseProgram(id);
+		gl::use_program(id);
 	}
 
 	template<typename T>
 	shader_uniform_setter<T> uniform(char const * name) const {
-		return { glGetUniformLocation(id, name) };
+		return { gl::get_uniform_location(id, name) };
 	}
 
 	template<typename T>
@@ -217,30 +217,30 @@ public:
 		}                                           \
 	}
 
-X(GLfloat, glUniform1f (id, v));
-X(GLint  , glUniform1i (id, v));
-X(GLuint , glUniform1ui(id, v));
+X(GLfloat, gl::uniform_1f (id, v));
+X(GLint  , gl::uniform_1i (id, v));
+X(GLuint , gl::uniform_1ui(id, v));
 
-X(vector2<GLfloat>, glUniform2fv (id, 1, v.data()));
-X(vector3<GLfloat>, glUniform3fv (id, 1, v.data()));
-X(vector4<GLfloat>, glUniform4fv (id, 1, v.data()));
-X(vector2<GLint  >, glUniform2iv (id, 1, v.data()));
-X(vector3<GLint  >, glUniform3iv (id, 1, v.data()));
-X(vector4<GLint  >, glUniform4iv (id, 1, v.data()));
-X(vector2<GLuint >, glUniform2uiv(id, 1, v.data()));
-X(vector3<GLuint >, glUniform3uiv(id, 1, v.data()));
-X(vector4<GLuint >, glUniform4uiv(id, 1, v.data()));
+X(vector2<GLfloat>, gl::uniform_2fv (id, 1, v.data()));
+X(vector3<GLfloat>, gl::uniform_3fv (id, 1, v.data()));
+X(vector4<GLfloat>, gl::uniform_4fv (id, 1, v.data()));
+X(vector2<GLint  >, gl::uniform_2iv (id, 1, v.data()));
+X(vector3<GLint  >, gl::uniform_3iv (id, 1, v.data()));
+X(vector4<GLint  >, gl::uniform_4iv (id, 1, v.data()));
+X(vector2<GLuint >, gl::uniform_2uiv(id, 1, v.data()));
+X(vector3<GLuint >, gl::uniform_3uiv(id, 1, v.data()));
+X(vector4<GLuint >, gl::uniform_4uiv(id, 1, v.data()));
 
-X(matrix2<GLfloat>, glUniformMatrix2fv(id, 1, GL_TRUE, v.data()));
-X(matrix3<GLfloat>, glUniformMatrix3fv(id, 1, GL_TRUE, v.data()));
-X(matrix4<GLfloat>, glUniformMatrix4fv(id, 1, GL_TRUE, v.data()));
+X(matrix2<GLfloat>, gl::uniform_matrix_2fv(id, 1, GL_TRUE, v.data()));
+X(matrix3<GLfloat>, gl::uniform_matrix_3fv(id, 1, GL_TRUE, v.data()));
+X(matrix4<GLfloat>, gl::uniform_matrix_4fv(id, 1, GL_TRUE, v.data()));
 
-X(matrix3x2<GLfloat>, glUniformMatrix2x3fv(id, 1, GL_TRUE, v.data()));
-X(matrix2x3<GLfloat>, glUniformMatrix3x2fv(id, 1, GL_TRUE, v.data()));
-X(matrix4x2<GLfloat>, glUniformMatrix2x4fv(id, 1, GL_TRUE, v.data()));
-X(matrix2x4<GLfloat>, glUniformMatrix4x2fv(id, 1, GL_TRUE, v.data()));
-X(matrix4x3<GLfloat>, glUniformMatrix3x4fv(id, 1, GL_TRUE, v.data()));
-X(matrix3x4<GLfloat>, glUniformMatrix4x3fv(id, 1, GL_TRUE, v.data()));
+X(matrix3x2<GLfloat>, gl::uniform_matrix_2x3fv(id, 1, GL_TRUE, v.data()));
+X(matrix2x3<GLfloat>, gl::uniform_matrix_3x2fv(id, 1, GL_TRUE, v.data()));
+X(matrix4x2<GLfloat>, gl::uniform_matrix_2x4fv(id, 1, GL_TRUE, v.data()));
+X(matrix2x4<GLfloat>, gl::uniform_matrix_4x2fv(id, 1, GL_TRUE, v.data()));
+X(matrix4x3<GLfloat>, gl::uniform_matrix_3x4fv(id, 1, GL_TRUE, v.data()));
+X(matrix3x4<GLfloat>, gl::uniform_matrix_4x3fv(id, 1, GL_TRUE, v.data()));
 
 #undef X
 

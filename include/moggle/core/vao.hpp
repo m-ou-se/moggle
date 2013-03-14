@@ -49,12 +49,12 @@ public:
 	bool created() const { return id; }
 	explicit operator bool() const { return created(); }
 
-	void create() const { if (!id) glGenVertexArrays(1, &id); }
-	void destroy() { glDeleteVertexArrays(1, &id); }
+	void create() const { if (!id) gl::generate_vertex_arrays(1, &id); }
+	void destroy() { gl::delete_vertex_arrays(1, &id); }
 
 	void bind() const {
 		create();
-		glBindVertexArray(id);
+		gl::bind_vertex_array(id);
 	}
 
 	void attribute(
@@ -68,8 +68,8 @@ public:
 	) {
 		bind();
 		vbo.bind(GL_ARRAY_BUFFER);
-		glEnableVertexAttribArray(index);
-		glVertexAttribPointer(index, size, type, normalize_integers, stride, offset);
+		gl::enable_vertex_attribute_array(index);
+		gl::vertex_attribute_pointer(index, size, type, normalize_integers, stride, offset);
 	}
 
 	template<typename Element, typename Member>
