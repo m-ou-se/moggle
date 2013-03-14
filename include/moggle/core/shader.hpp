@@ -183,7 +183,7 @@ public:
 	}
 
 	void bind_attribute(GLuint attribute, char const * name) {
-		gl::bind_attribute_location(id, GLuint(attribute), name);
+		gl::bind_attribute_location(id, attribute, name);
 	}
 
 	void bind_attribute(GLuint attribute, std::string const & name) {
