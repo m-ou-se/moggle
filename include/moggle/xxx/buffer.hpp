@@ -27,7 +27,7 @@ namespace moggle {
 class generic_buffer {
 
 protected:
-	generic_vbo vbo_;
+	mutable generic_vbo vbo_;
 
 	generic_buffer() {}
 
@@ -52,7 +52,7 @@ public:
 		vbo_.bind(b);
 	}
 
-	virtual void sync() = 0;
+	virtual void sync() const = 0;
 
 	generic_vbo const & vbo() const { return vbo_; }
 	operator generic_vbo const & () const { return vbo(); }
@@ -67,7 +67,7 @@ class buffer : public generic_buffer, public std::vector<T> {
 private:
 	using vbo_t = moggle::vbo<T>;
 
-	bool dirty_ = !std::vector<T>::empty();
+	mutable bool dirty_ = !std::vector<T>::empty();
 
 public:
 	buffer() : std::vector<T>() {}
@@ -92,7 +92,7 @@ public:
 
 	bool is_dirty() const { return dirty_; }
 
-	virtual void sync() override {
+	virtual void sync() const override {
 		if (dirty_) {
 			static_cast<vbo_t &>(vbo_).data(*this);
 			dirty_ = false;
