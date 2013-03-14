@@ -83,7 +83,10 @@ public:
 	bool is_dirty() const { return dirty_; }
 
 	virtual void sync() override {
-		if (dirty_) static_cast<vbo_t &>(vbo_).data(*this);
+		if (dirty_) {
+			static_cast<vbo_t &>(vbo_).data(*this);
+			dirty_ = false;
+		}
 	}
 
 	void sync_back(); // TODO
