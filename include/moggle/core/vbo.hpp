@@ -48,7 +48,7 @@ public:
 	explicit operator bool() const { return created(); }
 
 	void create() const { if (!id) gl::generate_buffers(1, &id); }
-	void destroy() { gl::delete_buffers(1, &id); }
+	void destroy() { gl::delete_buffers(1, &id); id = 0; }
 
 	void bind(GLenum buffer) const {
 		create();
