@@ -54,7 +54,7 @@ namespace gl {
 		#endif
 	}
 
-	void throw_error(std::string const & function) {
+	inline void throw_error(std::string const & function) {
 		switch (glGetError()) {
 			case GL_NO_ERROR                     : return;
 			case GL_INVALID_VALUE                : throw gl_error{function, "Invalid value."};
