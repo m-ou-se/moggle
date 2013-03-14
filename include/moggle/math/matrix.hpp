@@ -41,6 +41,13 @@ public:
 		static_assert(sizeof...(c) + 2 <= N * M, "Too many elements.");
 	}
 
+	matrix(T const & v) {
+		for (size_t i = 0; i < M; ++i)
+		for (size_t j = 0; j < N; ++j) {
+			(*this)(i, j) = i == j ? v : 0;
+		}
+	}
+
 	template<typename T2, size_t N2, size_t M2>
 	matrix(matrix<T2, N2, M2> const & m) : matrix() {
 		*this = m;
