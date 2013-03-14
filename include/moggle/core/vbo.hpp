@@ -58,10 +58,21 @@ public:
 };
 
 template<typename T>
+class vbo_mapping {
+private:
+	T * const data_;
+	template<typename> friend class vbo;
+	vbo_mapping(void * data) : data_(static_cast<T *>(data)) {}
+public:
+	T * data() const { return data_; }
+	~vbo_mapping() { gl::unmap_buffer(GL_ARRAY_BUFFER); }
+};
+
+template<typename T>
 class vbo : public generic_vbo {
 
 public:
-	explicit vbo(bool allocate_now = false) : generic_vbo(allocate_now) {}
+	explicit vbo(bool create_now = false) : generic_vbo(create_now) {}
 
 	vbo(T const * begin, T const * end, GLenum usage = GL_STATIC_DRAW) {
 		data(begin, end, usage);
@@ -89,6 +100,13 @@ public:
 		data(list, usage);
 	}
 
+	size_t size() const {
+		GLint s;
+		bind(GL_ARRAY_BUFFER);
+		glGetBufferParameteriv(GL_ARRAY_BUFFER, GL_BUFFER_SIZE, &s);
+		return s / sizeof(T);
+	}
+
 	void data(T const * begin, size_t size, GLenum usage = GL_STATIC_DRAW) {
 		bind(GL_ARRAY_BUFFER);
 		gl::buffer_data(
@@ -97,6 +115,14 @@ public:
 			begin,
 			usage
 		);
+	}
+
+	void resize(size_t size, GLenum usage = GL_STATIC_DRAW) {
+		bind(nullptr, size, usage);
+	}
+
+	void clear(GLenum usage = GL_STATIC_DRAW) {
+		resize(0, usage);
 	}
 
 	void data(T const * begin, T const * end, GLenum usage = GL_STATIC_DRAW) {
@@ -119,6 +145,21 @@ public:
 
 	void data(std::initializer_list<T> list, GLenum usage = GL_STATIC_DRAW) {
 		data(list.begin(), list.size(), usage);
+	}
+
+	vbo_mapping<T const> map_read_only() const {
+		bind(GL_ARRAY_BUFFER);
+		return { gl::map_buffer(GL_ARRAY_BUFFER, GL_READ_ONLY) };
+	}
+
+	vbo_mapping<T> map_write_only() const {
+		bind(GL_ARRAY_BUFFER);
+		return { gl::map_buffer(GL_ARRAY_BUFFER, GL_READ_ONLY) };
+	}
+
+	vbo_mapping<T> map_read_write() const {
+		bind(GL_ARRAY_BUFFER);
+		return { gl::map_buffer(GL_ARRAY_BUFFER, GL_READ_ONLY) };
 	}
 
 };
