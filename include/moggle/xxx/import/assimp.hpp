@@ -24,7 +24,7 @@
 namespace moggle {
 
 mesh import_mesh(char const * file_name);
-mesh import_mesh(std::string const & file_name) {
+inline mesh import_mesh(std::string const & file_name) {
 	return import_mesh(file_name.data());
 }
 
