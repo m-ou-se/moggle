@@ -76,7 +76,16 @@ public:
 	buffer(std::vector<T> const & other) : std::vector<T>(other) {}
 	buffer(std::vector<T> && other) : std::vector<T>(std::move(other)) {}
 	buffer(std::initializer_list<T> init) : std::vector<T>(init) {}
+
 	buffer(buffer const & other) : generic_buffer(other), std::vector<T>(other) {}
+
+	buffer & operator = (buffer const & other) {
+		std::vector<T>::operator = (other);
+		dirty_ = true;
+	}
+
+	buffer(buffer &&) = default;
+	buffer & operator = (buffer &&) = default;
 
 	void mark_dirty() { dirty_ = true; }
 
