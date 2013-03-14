@@ -41,12 +41,12 @@ namespace projection_matrices {
 	inline matrix<float, 4> perspective(
 		float field_of_view,
 		float aspect_ratio,
-		float near,
-		float far
+		float n,
+		float f
 	) {
-		float h = std::tan(field_of_view / 360.0f * std::acos(-1.0f)) * near;
+		float h = std::tan(field_of_view / 360.0f * std::acos(-1.0f)) * n;
 		float w = h * aspect_ratio;
-		return frustrum(-w, w, -h, h, near, far);
+		return frustrum(-w, w, -h, h, n, f);
 	}
 
 	inline matrix<float, 4> orthographic(
