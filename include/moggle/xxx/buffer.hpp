@@ -99,7 +99,10 @@ public:
 		}
 	}
 
-	void sync_back(); // TODO
+	void sync_back() {
+		auto m = vbo().map_read_only();
+		std::vector<T>::assign(m.data(), m.data() + vbo().size());
+	}
 
 	vbo_t const & vbo() const { return static_cast<vbo_t const &>(generic_buffer::vbo()); }
 	operator vbo_t const & () const { return vbo(); }
