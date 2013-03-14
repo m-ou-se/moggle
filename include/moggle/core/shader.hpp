@@ -28,7 +28,6 @@
 namespace moggle {
 
 enum class shader_type : GLenum {
-	uninitialized = 0,
 	vertex = GL_VERTEX_SHADER,
 	fragment = GL_FRAGMENT_SHADER
 };
@@ -36,37 +35,43 @@ enum class shader_type : GLenum {
 class shader {
 
 private:
-	GLuint id;
-	shader_type type;
+	GLuint id = 0;
 
 	friend class shader_program;
 
-	shader() : id(0), type(shader_type::uninitialized) {}
-
-	explicit shader(shader_type type) : id(gl::create_shader(GLenum(type))), type(type) {
-		if (!id) throw std::runtime_error("Unable to create shader.");
-	}
-
 public:
-	~shader() {
-		gl::delete_shader(id);
+	shader() : id(0) {}
+
+	explicit shader(shader_type type) {
+		create(type);
 	}
 
-	shader(shader && s) : shader() {
-		*this = std::move(s);
-	}
+	~shader() { destroy(); }
 
-	shader & operator = (shader && s) {
-		this->~shader();
-		id = s.id;
-		type = s.type;
-		s.id = 0;
-		s.type = shader_type::uninitialized;
-		return *this;
-	}
+	shader(shader && s) : id(s.id) { s.id = 0; }
+	shader & operator = (shader && s) { std::swap(id, s.id); return *this; }
 
 	shader(shader const &) = delete;
 	shader & operator = (shader const &) = delete;
+
+	bool created() const { return id; }
+	explicit operator bool() const { return created(); }
+
+	void create(shader_type t) {
+		if (id && type() != t) destroy();
+		if (!id) id = gl::create_shader(GLenum(t));
+	}
+
+	void destroy() {
+		gl::delete_shader(id);
+		id = 0;
+	}
+
+	shader_type type() const {
+		GLint t;
+		gl::get_shader_iv(id, GL_SHADER_TYPE, &t);
+		return shader_type(t);
+	}
 
 	static shader from_source(shader_type type, char const * source) {
 		shader shader(type);
@@ -92,7 +97,6 @@ public:
 		return from_file(type, source.data());
 	}
 
-private:
 	void load(std::string const & source) {
 		load(source.data());
 	}
@@ -101,23 +105,27 @@ private:
 		gl::shader_source(id, 1, &source, nullptr);
 	}
 
-	void compile() {
-		gl::compile_shader(id);
+	bool compiled() const {
 		GLint status;
 		gl::get_shader_iv(id, GL_COMPILE_STATUS, &status);
-		if (status == GL_FALSE) {
-			std::string error = "Unable to compile shader.";
-			GLint log_size;
-			gl::get_shader_iv(id, GL_INFO_LOG_LENGTH, &log_size);
-			if (log_size) {
-				std::vector<char> log(log_size);
-				gl::get_shader_info_log(id, log_size, nullptr, log.data());
-				error.back() = ':';
-				error += '\n';
-				error += log.data();
-			}
-			throw std::runtime_error(error);
-		}
+		return status != GL_FALSE;
+	}
+
+	std::string log() const {
+		GLint log_size;
+		gl::get_shader_iv(id, GL_INFO_LOG_LENGTH, &log_size);
+		std::string log(log_size, ' ');
+		if (log_size) gl::get_shader_info_log(id, log_size, nullptr, &log[0]);
+		return log;
+	}
+
+	void try_compile() {
+		gl::compile_shader(id);
+	}
+
+	void compile() {
+		try_compile();
+		if (!compiled()) throw gl_error{"gl::compile_shader", "Unable to compile shader:\n" + log()};
 	}
 
 };
@@ -127,59 +135,64 @@ template<typename T> class shader_uniform_setter;
 class shader_program {
 
 private:
-	GLuint id;
-
-	static GLuint create() {
-		GLuint id = gl::create_program();
-		if (!id) throw std::runtime_error("Unable to create shader program.");
-		return id;
-	}
+	GLuint id = 0;
 
 public:
-	shader_program() : id(create()) {}
-
-	~shader_program() {
-		gl::delete_program(id);
+	explicit shader_program(bool create_now = false) {
+		if (create_now) create();
 	}
 
-	shader_program(shader_program && s) : shader_program() {
-		*this = std::move(s);
-	}
+	~shader_program() { destroy(); }
 
-	shader_program & operator = (shader_program && s) {
-		std::swap(id, s.id);
-		return *this;
-	}
+	shader_program(shader_program && s) : id(s.id) { s.id = 0; }
+	shader_program & operator = (shader_program && s) { std::swap(id, s.id); return *this; }
 
 	shader_program(shader_program const &) = delete;
 	shader_program & operator = (shader_program const &) = delete;
 
-	void clear() {
+	bool created() const { return id; }
+	explicit operator bool() const { return created(); }
+
+	void create() {
+		if (!id) id = gl::create_program();
+	}
+
+	void destroy() {
 		gl::delete_program(id);
-		id = create();
+		id = 0;
+	}
+
+	void clear() {
+		destroy();
+		create();
 	}
 
 	void attach(shader const & shader) {
+		create();
 		gl::attach_shader(id, shader.id);
 	}
 
-	void link() {
-		gl::link_program(id);
+	bool linked() const {
 		GLint status;
 		gl::get_program_iv(id, GL_LINK_STATUS, &status);
-		if (status == GL_FALSE) {
-			std::string error = "Unable to link shader program.";
-			GLint log_size;
-			gl::get_program_iv(id, GL_INFO_LOG_LENGTH, &log_size);
-			if (log_size) {
-				std::vector<char> log(log_size);
-				gl::get_program_info_log(id, log_size, nullptr, log.data());
-				error.back() = ':';
-				error += '\n';
-				error += log.data();
-			}
-			throw std::runtime_error(error);
-		}
+		return status != GL_FALSE;
+	}
+
+	std::string log() const {
+		GLint log_size;
+		gl::get_program_iv(id, GL_INFO_LOG_LENGTH, &log_size);
+		std::string log(log_size, ' ');
+		if (log_size) gl::get_program_info_log(id, log_size, nullptr, &log[0]);
+		return log;
+	}
+
+	void try_link() {
+		gl::link_program(id);
+	}
+
+	void link() {
+		try_link();
+		if (!linked()) throw gl_error{"gl::link_program", "Unable to link program:\n" + log()};
 	}
 
 	void bind_attribute(GLuint attribute, char const * name) {
