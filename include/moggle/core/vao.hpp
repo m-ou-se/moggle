@@ -81,7 +81,7 @@ public:
 			vbo,
 			mt::size,
 			gl_type_traits<typename nt::raw_type>::gl_constant,
-			nt::is_normalized,
+			nt::is_normalized_type,
 			sizeof(Element),
 			&(static_cast<Element const *>(nullptr)->*member)
 		);
@@ -96,7 +96,7 @@ public:
 			vbo,
 			mt::size,
 			gl_type_traits<typename nt::raw_type>::gl_constant,
-			nt::is_normalized,
+			nt::is_normalized_type,
 			sizeof(Element),
 			nullptr
 		);
