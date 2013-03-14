@@ -1,10 +1,20 @@
 #!/bin/bash
+build() {
+	(
+		mkdir -p build-$1
+		cd build-$1
+		cmake -DCMAKE_BUILD_TYPE=$1 ..
+		shift
+		make "$@"
+	)
+}
 if [ "$1" == "release" ]; then
-	shift
-	make -C build-release "$@"
+	build "$@"
+elif [ "$1" == "debug" ]; then
+	build "$@"
 elif [ "$1" == "both" ]; then
 	shift
-	make -C build-debug "$@" && make -C build-release "$@"
+	build debug "$@" && build release "$@"
 else
-	make -C build-debug "$@"
+	build debug "$@"
 fi
