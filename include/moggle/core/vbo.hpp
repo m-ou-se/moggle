@@ -47,12 +47,12 @@ public:
 	bool created() const { return id; }
 	explicit operator bool() const { return created(); }
 
-	void create() const { if (!id) glGenBuffers(1, &id); }
-	void destroy() { glDeleteBuffers(1, &id); }
+	void create() const { if (!id) gl::generate_buffers(1, &id); }
+	void destroy() { gl::delete_buffers(1, &id); }
 
 	void bind(GLenum buffer) const {
 		create();
-		glBindBuffer(buffer, id);
+		gl::bind_buffer(buffer, id);
 	}
 
 };
@@ -91,7 +91,7 @@ public:
 
 	void data(T const * begin, size_t size, GLenum usage = GL_STATIC_DRAW) {
 		bind(GL_ARRAY_BUFFER);
-		glBufferData(
+		gl::buffer_data(
 			GL_ARRAY_BUFFER,
 			size * sizeof(T),
 			begin,
