@@ -90,9 +90,9 @@ public:
 	}
 
 	void data(T const * begin, size_t size, GLenum usage = GL_STATIC_DRAW) {
-		bind(GL_COPY_WRITE_BUFFER);
+		bind(GL_ARRAY_BUFFER);
 		glBufferData(
-			GL_COPY_WRITE_BUFFER,
+			GL_ARRAY_BUFFER,
 			size * sizeof(T),
 			begin,
 			usage
