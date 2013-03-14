@@ -37,7 +37,7 @@ public:
 	generic_buffer(generic_buffer && other) : vbo_(std::move(other.vbo_)) {}
 
 protected:
-	generic_buffer & operator = (generic_buffer const & other) {
+	generic_buffer & operator = (generic_buffer const &) {
 		return *this;
 	}
 
