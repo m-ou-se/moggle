@@ -29,14 +29,15 @@ class generic_buffer {
 protected:
 	generic_vbo vbo_;
 
-public:
 	generic_buffer() {}
 
+	// A buffer and a copy of it do not share the same vbo, the copy uses a new vbo.
+	// (The data is copied into it from the copied vector.)
+	// Therefore, this copy constructor does *not* copy vbo_.
 	generic_buffer(generic_buffer const &) {}
 
 	generic_buffer(generic_buffer && other) : vbo_(std::move(other.vbo_)) {}
 
-protected:
 	generic_buffer & operator = (generic_buffer const &) {
 		return *this;
 	}
