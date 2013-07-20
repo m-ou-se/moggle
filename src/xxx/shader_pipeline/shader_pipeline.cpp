@@ -33,7 +33,7 @@ namespace shader_pipeline {
 
 pipeline const * pipeline::active_pipeline_;
 
-void context::add_file(std::string const & name) {
+void compiler::add_file(std::string const & name) {
 	std::ifstream file;
 	file.exceptions(std::ifstream::badbit);
 	file.open(name);
@@ -42,12 +42,12 @@ void context::add_file(std::string const & name) {
 	add_code(file, name);
 }
 
-void context::add_code(std::string const & code, std::string const & name) {
+void compiler::add_code(std::string const & code, std::string const & name) {
 	std::istringstream ss{code};
 	add_code(ss, name);
 }
 
-void context::add_code(std::istream & in, std::string const & name) {
+void compiler::add_code(std::istream & in, std::string const & name) {
 
 	token_iterator i{in};
 
@@ -148,17 +148,21 @@ namespace {
 	};
 }
 
-void pipeline::compile_source() {
+void compiler::compile_source(pipeline & p) {
+	p.vertex_shader_source_.clear();
+	p.fragment_shader_source_.clear();
+
 	std::ostringstream vertex_shader;
 	std::ostringstream fragment_shader;
 
 	stream_splitter both_shaders { vertex_shader, fragment_shader };
 
-	both_shaders << context << '\n';
+	if (glsl_version()) both_shaders << "#version " << glsl_version() << '\n';
+	both_shaders << code() << '\n';
 	both_shaders << "// --------------------" << '\n';
 	both_shaders << "// generated shader" << '\n' << '\n';
 
-	for (auto const & v : uniform_variables) {
+	for (auto const & v : p.uniform_variables) {
 		both_shaders << "uniform " << v << ";" << '\n';
 	}
 
@@ -166,10 +170,10 @@ void pipeline::compile_source() {
 	std::set<variable> local_variables;
 	std::set<variable> varying_variables;
 
-	for (auto const & v : fragment_outputs) {
+	for (auto const & v : p.fragment_outputs) {
 		required_variables.insert(v);
 	}
-	for (auto const & v : special_fragment_outputs) {
+	for (auto const & v : p.special_fragment_outputs) {
 		if (v.second.empty()) continue;
 		required_variables.insert(variable(v.first.type, v.second));
 	}
@@ -188,8 +192,8 @@ void pipeline::compile_source() {
 					}
 				}
 			} else {
-				auto op = context.operations().find(i->name);
-				if (op == context.operations().end()) throw compile_error{"Undefined reference to 'operation " + i->name + "'."};
+				auto op = this->operations().find(i->name);
+				if (op == this->operations().end()) throw compile_error{"Undefined reference to 'operation " + i->name + "'."};
 				for (auto p : op->second.parameters) {
 					auto s = i->parameters.find(p.name);
 					if (s != i->parameters.end()) {
@@ -231,7 +235,7 @@ void pipeline::compile_source() {
 					statement << ';';
 				}
 			} else {
-				auto op = context.operations().find(i->name);
+				auto op = this->operations().find(i->name);
 				statement << i->name;
 				bool first = true;
 				for (auto p : op->second.parameters) {
@@ -255,21 +259,21 @@ void pipeline::compile_source() {
 		return statements;
 	};
 
-	process_operations(fragment_operations);
+	process_operations(p.fragment_operations);
 
 	varying_variables = required_variables;
 
-	for (auto const & v : uniform_variables) {
+	for (auto const & v : p.uniform_variables) {
 		varying_variables.erase(v);
 	}
 
-	auto fragment_operations_statements = generate_statements(fragment_operations);
+	auto fragment_operations_statements = generate_statements(p.fragment_operations);
 
 	for (auto const & v : varying_variables) {
 		both_shaders << "varying " << v.type << " _v_" << v.name << ";" << '\n';
 	}
 
-	for (auto const & v : fragment_outputs) {
+	for (auto const & v : p.fragment_outputs) {
 		fragment_shader << "out " << v << '\n';
 	}
 
@@ -278,17 +282,17 @@ void pipeline::compile_source() {
 	for (auto const & v : local_variables) {
 		fragment_shader << '\t' << v.type << " _l_" << v.name;
 		if (required_variables.count(v)) {
-			fragment_shader << " = " << (uniform_variables.count(v) ? "" : "_v_") << v.name;
+			fragment_shader << " = " << (p.uniform_variables.count(v) ? "" : "_v_") << v.name;
 		}
 		fragment_shader << ";" << '\n';
 	}
 	for (auto const & s : fragment_operations_statements) {
 		fragment_shader << '\t' << s << '\n';
 	}
-	for (auto const & v : fragment_outputs) {
+	for (auto const & v : p.fragment_outputs) {
 		fragment_shader << '\t' << v.name << " = " << var_name(v.name) << ";" << '\n';
 	}
-	for (auto const & v : special_fragment_outputs) {
+	for (auto const & v : p.special_fragment_outputs) {
 		if (v.second.empty()) continue;
 		fragment_shader << '\t' << v.first.name << " = " << var_name(v.second) << ";" << '\n';
 	}
@@ -298,20 +302,20 @@ void pipeline::compile_source() {
 	auto varying_outputs = std::move(varying_variables);
 	varying_variables.clear();
 
-	for (auto const & v : special_vertex_outputs) {
+	for (auto const & v : p.special_vertex_outputs) {
 		if (v.second.empty()) continue;
 		required_variables.insert(variable(v.first.type, v.second));
 	}
 
 	local_variables.clear();
 
-	process_operations(vertex_operations);
-	auto vertex_operations_statements = generate_statements(vertex_operations);
+	process_operations(p.vertex_operations);
+	auto vertex_operations_statements = generate_statements(p.vertex_operations);
 
-	vertex_attributes_.clear();
+	p.vertex_attributes_.clear();
 	for (auto const & v : required_variables) {
-		if (uniform_variables.count(v)) continue;
-		vertex_attributes_.push_back(v);
+		if (p.uniform_variables.count(v)) continue;
+		p.vertex_attributes_.push_back(v);
 		vertex_shader << "attribute " << v << ";" << '\n';
 	}
 
@@ -327,7 +331,7 @@ void pipeline::compile_source() {
 	for (auto const & s : vertex_operations_statements) {
 		vertex_shader << '\t' << s << '\n';
 	}
-	for (auto const & v : special_vertex_outputs) {
+	for (auto const & v : p.special_vertex_outputs) {
 		if (v.second.empty()) continue;
 		vertex_shader << '\t' << v.first.name << " = " << var_name(v.second) << ";" << '\n';
 	}
@@ -337,8 +341,13 @@ void pipeline::compile_source() {
 
 	vertex_shader << "}" << '\n';
 
-	vertex_shader_source_ = vertex_shader.str();
-	fragment_shader_source_ = fragment_shader.str();
+	p.vertex_shader_source_ = vertex_shader.str();
+	p.fragment_shader_source_ = fragment_shader.str();
+}
+
+void compiler::compile(pipeline & p) {
+	compile_source(p);
+	p.compile_program();
 }
 
 void pipeline::compile_program() {
@@ -349,11 +358,6 @@ void pipeline::compile_program() {
 		program_.bind_attribute(i, vertex_attributes_[i].name);
 	}
 	program_.link();
-}
-
-void pipeline::compile() {
-	compile_source();
-	compile_program();
 }
 
 void pipeline::use() const {
