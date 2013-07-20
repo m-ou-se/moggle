@@ -63,7 +63,9 @@ struct operation_details : variable {
 	std::vector<parameter> parameters;
 };
 
-class context {
+class pipeline;
+
+class compiler {
 
 private:
 	unsigned int glsl_version_ = 0;
@@ -75,7 +77,7 @@ private:
 	std::set<std::string> used_files_;
 
 public:
-	explicit context(unsigned int glsl_version = 0) : glsl_version_(glsl_version) {}
+	explicit compiler(unsigned int glsl_version = 0) : glsl_version_(glsl_version) {}
 
 	unsigned int glsl_version() const { return glsl_version_; }
 	std::string const & code() const { return code_; }
@@ -86,19 +88,12 @@ public:
 	void add_code(std::istream &, std::string const & name = "");
 	void add_file(std::string const & filename);
 
-	/* TODO (used files_)
-	context & operator += (context const & other) {
-		if (other.glsl_version_ > glsl_version_) glsl_version_ = other.glsl_version_;
-		code_ += '\n' + other.code_;
-		operations_.insert(other.operations_.begin(), other.operations_.end());
-		return *this;
-	}
+	/// Generates the sources for the given pipeline, but does not compile or link them yet.
+	/// \note pipeline::compile_program() can be used to compile and link the generated sources.
+	void compile_source(pipeline &);
 
-	context operator + (context const & other) {
-		context x = *this;
-		return x += other;
-	}
-	*/
+	/// Generates the sources for the given pipeline and compiles and links them.
+	void compile(pipeline &);
 
 };
 
@@ -158,10 +153,6 @@ class pipeline {
 public:
 	static pipeline const * active_pipeline() { return active_pipeline_; }
 
-	class context const & context;
-
-	pipeline(class context const & context) : context(context) {}
-
 	std::set<variable> uniform_variables;
 
 	std::list<operation>   vertex_operations;
@@ -185,6 +176,8 @@ private:
 
 	shader_program program_;
 
+	friend class compiler;
+
 public:
 	std::string const & vertex_shader_source() const { return vertex_shader_source_; }
 	std::string const & fragment_shader_source() const { return fragment_shader_source_; }
@@ -193,9 +186,9 @@ public:
 
 	shader_program const & program() const { return program_; }
 
-	void compile_source();
+	/// Compile and link the program from the (generated) sources.
+	/// \note This does not generate the sources, use compiler::compile[_source] for that.
 	void compile_program();
-	void compile();
 
 	void use() const;
 
@@ -205,14 +198,9 @@ inline std::ostream & operator << (std::ostream & out, variable const & v) {
 	return out << v.type << ' ' << v.name;
 }
 
-inline std::ostream & operator << (std::ostream & out, context const & c) {
-	if (c.glsl_version()) out << "#version " << c.glsl_version() << std::endl;
-	return out << c.code() << std::endl;
-}
-
 }
 
 using pipeline = shader_pipeline::pipeline;
-using shader_context = shader_pipeline::context;
+using pipeline_compiler = shader_pipeline::compiler;
 
 }
