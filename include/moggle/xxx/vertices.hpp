@@ -22,6 +22,7 @@
 #include <memory>
 #include <string>
 #include <stdexcept>
+#include <type_traits>
 #include "../core/gl.hpp"
 #include "../core/gl_type_traits.hpp"
 #include "../core/vao.hpp"
@@ -47,16 +48,17 @@ public:
 	};
 
 private:
-	vao vao_;
+	mutable vao vao_;
 	std::map<std::string, attribute_data> attributes_;
 
 public:
+	template<bool Const>
 	class attribute_ref {
 	private:
-		vertices & v;
+		vertices const & v;
 		attribute_data const * a;
 		std::string n;
-		attribute_ref(vertices & v, attribute_data const * a, std::string n)
+		attribute_ref(vertices const & v, attribute_data const * a, std::string n)
 			: v(v), a(a), n(std::move(n)) {}
 		friend class vertices;
 		void must_exist() const {
@@ -74,7 +76,7 @@ public:
 		bool exists() const { return a; }
 		explicit operator bool () const { return exists(); }
 		std::string const & name() const { return n; }
-		void use(GLuint attribute_id) {
+		void use(GLuint attribute_id) const {
 			must_exist();
 			a->buffer->sync(); // TODO: check if this line belongs here or somewhere else.
 			v.vao_.attribute(
@@ -87,18 +89,20 @@ public:
 				nullptr
 			);
 		}
-		std::shared_ptr<class generic_buffer> generic_buffer() {
+		std::shared_ptr<typename std::conditional<Const, class generic_buffer const, class generic_buffer>::type>
+		generic_buffer() {
 			must_exist();
 			return a->buffer;
 		}
 		template<typename T>
-		std::shared_ptr<moggle::buffer<T>> buffer() {
+		std::shared_ptr<typename std::conditional<Const, class buffer<T> const, class buffer<T>>::type>
+		buffer() {
 			must_exist();
 			return std::dynamic_pointer_cast<moggle::buffer<T>>(a->buffer);
 		}
 	};
 
-	friend class attribute_ref;
+	template<bool> friend class attribute_ref;
 
 public:
 	std::map<std::string, attribute_data> const & attributes() const { return attributes_; }
@@ -122,15 +126,21 @@ public:
 		attribute(name, buf.make_shared());
 	}
 
-	// TODO: const_attribute_ref
-
-	attribute_ref attribute(std::string const & name) {
+	attribute_ref<true> attribute(std::string const & name) const {
+		auto i = attributes_.find(name);
+		if (i != attributes_.end()) return attribute(i);
+		return { *this, nullptr, name };
+	}
+	attribute_ref<false> attribute(std::string const & name) {
 		auto i = attributes_.find(name);
 		if (i != attributes_.end()) return attribute(i);
 		return { *this, nullptr, name };
 	}
 
-	attribute_ref attribute(decltype(attributes_)::const_iterator i) {
+	attribute_ref<true> attribute(decltype(attributes_)::const_iterator i) const {
+		return { *this, &i->second, i->first };
+	}
+	attribute_ref<false> attribute(decltype(attributes_)::const_iterator i) {
 		return { *this, &i->second, i->first };
 	}
 
