@@ -159,12 +159,12 @@ public:
 
 	vbo_mapping<T> map_write_only() const {
 		bind(GL_ARRAY_BUFFER);
-		return { gl::map_buffer(GL_ARRAY_BUFFER, GL_READ_ONLY), size() };
+		return { gl::map_buffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY), size() };
 	}
 
 	vbo_mapping<T> map_read_write() const {
 		bind(GL_ARRAY_BUFFER);
-		return { gl::map_buffer(GL_ARRAY_BUFFER, GL_READ_ONLY), size() };
+		return { gl::map_buffer(GL_ARRAY_BUFFER, GL_READ_WRITE), size() };
 	}
 
 };
