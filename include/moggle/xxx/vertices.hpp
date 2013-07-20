@@ -21,6 +21,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <stdexcept>
 #include "../core/gl.hpp"
 #include "../core/gl_type_traits.hpp"
 #include "../core/vao.hpp"
@@ -54,13 +55,27 @@ public:
 	private:
 		vertices & v;
 		attribute_data const * a;
-		attribute_ref(vertices & v, attribute_data const * a) : v(v), a(a) {}
+		std::string n;
+		attribute_ref(vertices & v, attribute_data const * a, std::string n)
+			: v(v), a(a), n(std::move(n)) {}
 		friend class vertices;
+		void must_exist() const {
+			if (!exists()) {
+				std::string error{"No such attribute: " + name() + " (available attributes are: "};
+				for (auto const & x : v.attributes()) {
+					if (&x != &*v.attributes().begin()) error += ", ";
+					error += x.first;
+				}
+				error += ")";
+				throw attribute_error{error};
+			}
+		}
 	public:
 		bool exists() const { return a; }
 		explicit operator bool () const { return exists(); }
+		std::string const & name() const { return n; }
 		void use(GLuint attribute_id) {
-			if (!exists()) throw attribute_error("No such attribute.");
+			must_exist();
 			a->buffer->sync(); // TODO: check if this line belongs here or somewhere else.
 			v.vao_.attribute(
 				attribute_id,
@@ -73,12 +88,12 @@ public:
 			);
 		}
 		std::shared_ptr<class generic_buffer> generic_buffer() {
-			if (!exists()) throw attribute_error("No such attribute.");
+			must_exist();
 			return a->buffer;
 		}
 		template<typename T>
 		std::shared_ptr<moggle::buffer<T>> buffer() {
-			if (!exists()) throw attribute_error("No such attribute.");
+			must_exist();
 			return std::dynamic_pointer_cast<moggle::buffer<T>>(a->buffer);
 		}
 	};
@@ -110,11 +125,13 @@ public:
 	// TODO: const_attribute_ref
 
 	attribute_ref attribute(std::string const & name) {
-		return attribute(attributes_.find(name));
+		auto i = attributes_.find(name);
+		if (i != attributes_.end()) return attribute(i);
+		return { *this, nullptr, name };
 	}
 
 	attribute_ref attribute(decltype(attributes_)::const_iterator i) {
-		return { *this, i == attributes_.end() ? nullptr : &i->second };
+		return { *this, &i->second, i->first };
 	}
 
 	void bind() const {
