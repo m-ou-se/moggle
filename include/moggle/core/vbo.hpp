@@ -61,10 +61,15 @@ template<typename T>
 class vbo_mapping {
 private:
 	T * const data_;
+	size_t size_;
 	template<typename> friend class vbo;
-	vbo_mapping(void * data) : data_(static_cast<T *>(data)) {}
+	vbo_mapping(void * data, size_t size)
+		: data_(static_cast<T *>(data)), size_(size) {}
 public:
 	T * data() const { return data_; }
+	size_t size() const { return size_; }
+	T * begin() const { return data_; }
+	T * end() const { return data_ + size_; }
 	~vbo_mapping() { gl::unmap_buffer(GL_ARRAY_BUFFER); }
 };
 
@@ -149,17 +154,17 @@ public:
 
 	vbo_mapping<T const> map_read_only() const {
 		bind(GL_ARRAY_BUFFER);
-		return { gl::map_buffer(GL_ARRAY_BUFFER, GL_READ_ONLY) };
+		return { gl::map_buffer(GL_ARRAY_BUFFER, GL_READ_ONLY), size() };
 	}
 
 	vbo_mapping<T> map_write_only() const {
 		bind(GL_ARRAY_BUFFER);
-		return { gl::map_buffer(GL_ARRAY_BUFFER, GL_READ_ONLY) };
+		return { gl::map_buffer(GL_ARRAY_BUFFER, GL_READ_ONLY), size() };
 	}
 
 	vbo_mapping<T> map_read_write() const {
 		bind(GL_ARRAY_BUFFER);
-		return { gl::map_buffer(GL_ARRAY_BUFFER, GL_READ_ONLY) };
+		return { gl::map_buffer(GL_ARRAY_BUFFER, GL_READ_ONLY), size() };
 	}
 
 };
