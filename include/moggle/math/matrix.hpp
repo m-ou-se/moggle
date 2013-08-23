@@ -107,7 +107,7 @@ public:
 
 	template<size_t br, size_t er, size_t bc = 0, size_t ec = M>
 	matrix<T, er - br, ec - br> slice() const {
-		matrix<T, er - br, ec - br> m;
+		matrix<T, er - br, ec - bc> m;
 		for (size_t i = br; i < er; ++i)
 		for (size_t j = bc; j < ec; ++j) {
 			m(i - br, j - bc) = (*this)(i, j);
