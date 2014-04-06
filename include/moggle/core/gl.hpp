@@ -22,11 +22,7 @@
 #include <utility>
 
 #ifdef __APPLE__
-	#include <OpenGL/gl.h>
-	#include <OpenGL/glext.h>
-	#define glBindVertexArray glBindVertexArrayAPPLE
-	#define glDeleteVertexArrays glDeleteVertexArraysAPPLE
-	#define glGenVertexArrays glGenVertexArraysAPPLE
+    #include <OpenGL/gl3.h>
 #else
 	#include <GL/glew.h>
 #endif
