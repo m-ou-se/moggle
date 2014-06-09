@@ -55,6 +55,8 @@ public:
 		gl::bind_buffer(buffer, id);
 	}
 
+	GLuint get_id() const { return id; }
+
 };
 
 template<typename T>

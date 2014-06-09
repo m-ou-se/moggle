@@ -33,6 +33,8 @@ public:
 		gl::bind_renderbuffer(GL_RENDERBUFFER, id);
 	}
 
+	GLuint get_id() const { return id; }
+
 	void storage(GLenum target, GLenum internalformat, GLsizei width, GLsizei height){
 		bind();
 		gl::renderbuffer_storage(target, internalformat, width, height);

@@ -67,6 +67,8 @@ public:
 		id = 0;
 	}
 
+	GLuint get_id() const { return id; }
+
 	shader_type type() const {
 		GLint t;
 		gl::get_shader_iv(id, GL_SHADER_TYPE, &t);
@@ -166,6 +168,8 @@ public:
 		destroy();
 		create();
 	}
+
+	GLuint get_id() const { return id; }
 
 	void attach(shader const & shader) {
 		create();

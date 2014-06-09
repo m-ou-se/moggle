@@ -39,6 +39,8 @@ public:
 		gl::bind_texture(target, id);
 	}
 
+	GLuint get_id() const { return id; }
+
 	template <typename T>
 	void image_2d(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLenum format, const T * data){
 		bind(target);

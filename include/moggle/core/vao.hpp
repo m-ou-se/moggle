@@ -57,6 +57,8 @@ public:
 		gl::bind_vertex_array(id);
 	}
 
+	GLuint get_id() const { return id; }
+
 	void attribute(
 		GLuint index,
 		generic_vbo const & vbo,
